@@ -6,7 +6,7 @@ import videojs from 'video.js';
 import Player from 'video.js/dist/types/player';
 
 export default function Home() {
-  const videoSrc = 'http://localhost:3000/public/videos/130b39ac-3b6f-4ada-8848-204774b04ff0/output.m3u8';
+  const videoSrc = 'http://localhost:8080/public/videos/c18e9e2c-0fa0-4fd0-a2e3-6deb77a3de4b/output.m3u8';
 
   const playerRef = useRef<Player | null>(null);
 
