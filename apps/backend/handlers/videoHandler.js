@@ -1,10 +1,11 @@
-import { exec } from "child_process";
-import { videosCollection } from "../db/dbCollections.js";
 import fs from 'fs';
+import { exec } from "child_process";
 import { v4 } from 'uuid';
 import path from 'path';
+import { videosCollection } from "../db/dbCollections.js";
 import { outputFileName } from "../constants/fileName.js";
 import { convertToHlsCommand } from "../services/convertVideo.js";
+import { errorResponse, successResponse } from '../dto/response.js';
 
 class VideoHandler {
   static async getVideo(req, res, next) {
@@ -20,7 +21,6 @@ class VideoHandler {
       return;
     }
   
-    // get all videos
     const videos = await videosCollection.find({}).toArray();
     res.status(200).json({
       data: videos
@@ -29,9 +29,11 @@ class VideoHandler {
 
   static async uploadVideo(req, res, next) {
     const chapterId = v4();
-    if (!req.file) {
-      return res.status(400).send('No file uploaded');
-    }
+    const { title } = req.body;
+
+    if (!title) return errorResponse(res, 400, 'title is required');
+    if (!req.file) return errorResponse(res, 400, 'No file uploaded');
+
     const videoPath = req.file.path;
     const outputDir = `public/videos/${chapterId}`;
     const outputPath = path.join(outputDir, outputFileName);
@@ -41,24 +43,22 @@ class VideoHandler {
     }
 
     exec(convertToHlsCommand(videoPath, outputDir, outputPath), (error) => {
-      if (error) {
-        console.error(`Error executing ffmpeg command: ${error.message}`);
-        return res.status(500).send('Error processing video');
-      }
+      if (error) return errorResponse(res, 500, error.message)
 
-    videosCollection.insertOne({
-      chapterId,
-      videoPath: outputPath,
-      createdAt: new Date()
-    }, (err, result) => {
-      if (err) {
-        console.error('Error saving video details to MongoDB', err);
-        return res.status(500).send('Error saving video details');
-      }
-    });
+      videosCollection.insertOne({
+        chapterId,
+        videoPath: outputPath,
+        createdAt: new Date()
+      }, (err) => {
+        if (err) return errorResponse(res, 500, 'Error saving video details', err);
+      });
     
-    res.status(200).send({ chapterId, videoPath: outputPath });
-  });
+      return successResponse(res, 200, 'Video uploaded successfully', {
+        chapterId,
+        videoPath: outputPath,
+        createdAt: new Date()
+      })
+    });
   }
 }
 
