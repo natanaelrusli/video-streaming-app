@@ -34,18 +34,19 @@ const VideoThumbnail = ({ videoUrl, autoPlay, thumbnailUrl }: VideoThumbnailProp
   const handlePlayerReady = (player: Player) => {
     playerRef.current = player;
     console.log("ready");
-    playerRef.current.poster(""); // Remove the poster when ready
   };
 
+  // TODO: show thumbnail poster again when paused
   const handlePlayPause = () => {
     if (playerRef.current) {
       if (playerRef.current.paused()) {
-        playerRef.current.play(); // Play the video if it is paused
+        playerRef.current.play()
       } else {
-        playerRef.current.pause(); // Pause the video if it is playing
+        playerRef.current.pause();
       }
     }
   };
+  
 
   return (
     <div className="w-auto max-w-[400px] cursor-pointer" onMouseEnter={handlePlayPause} onMouseLeave={handlePlayPause}>
