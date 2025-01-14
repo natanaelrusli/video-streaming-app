@@ -66,7 +66,7 @@ export const VideoPlayer = ({ options, onReady }: VideoPlayerProps) => {
     }, [playerRef]);
 
     return (
-        <div data-vjs-player style={{ width: "600px" }}>
+        <div data-vjs-player className='rounded-xl overflow-hidden'>
             <div ref={videoRef} />
         </div>
     );

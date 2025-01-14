@@ -7,11 +7,12 @@ import { exec } from 'child_process';
 import { upload } from './middlewares/multer.js'
 import db from './db/conn.js';
 import { fileURLToPath } from 'url';
+import { outputFileName } from './constants/fileName.js';
+import { convertToHlsCommand } from './services/convertVideo.js'
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
 
-const chapters = {};
 const PORT = 8080;
 const app = express();
 const corsOptions = {
@@ -31,18 +32,13 @@ app.post("/upload", upload.single('video'), (req, res) => {
   }
   const videoPath = req.file.path;
   const outputDir = `public/videos/${chapterId}`;
-  const outputFileName = 'output.m3u8';
   const outputPath = path.join(outputDir, outputFileName);
 
   if (!fs.existsSync(outputDir)) {
     fs.mkdirSync(outputDir, { recursive: true });
   }
 
-  const command = `ffmpeg -i ${videoPath} \
-    -map 0:v -c:v libx264 -crf 23 -preset medium -g 48 \
-    -hls_time 10 -hls_playlist_type vod -hls_segment_filename '${outputDir}/%03d.ts' ${outputPath}`;
-
-  exec(command, (error) => {
+  exec(convertToHlsCommand(videoPath, outputDir, outputPath), (error) => {
     if (error) {
       console.error(`Error executing ffmpeg command: ${error.message}`);
       return res.status(500).send('Error processing video');
@@ -63,8 +59,25 @@ app.post("/upload", upload.single('video'), (req, res) => {
   });
 });
 
-app.get("/getVideo", (req, res) => {
-  res.send(req.query.chapterId);
+app.get("/getVideo", async (req, res) => {
+  // get single video
+  if (req.query.chapterId) {
+    const video = await videosCollection.findOne({
+      chapterId: req.query.chapterId
+    });
+
+    res.status(200).json({
+      data: video
+    });
+
+    return;
+  }
+
+  // get all videos
+  const videos = await videosCollection.find({}).toArray();
+  res.status(200).json({
+    data: videos
+  });
 })
 
 app.listen(PORT, () => {
