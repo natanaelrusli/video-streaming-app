@@ -5,13 +5,15 @@ import path from 'path';
 import { videosCollection } from "../db/dbCollections.js";
 import { outputFileName } from "../constants/fileName.js";
 import { convertToHlsCommand } from "../services/convertVideo.js";
-import { errorResponse, successResponse } from '../dto/response.js';
+import { errorResponse, paginationResponse, successResponse } from '../dto/response.js';
 
 class VideoHandler {
   static async getVideo(req, res, next) {
-    if (req.query.chapterId) {
+    const { chapterId, page = 1, limit = 10 } = req.query;
+
+    if (chapterId) {
       const video = await videosCollection.findOne({
-        chapterId: req.query.chapterId
+        chapterId: chapterId
       });
   
       res.status(200).json({
@@ -20,12 +22,52 @@ class VideoHandler {
   
       return;
     }
+
+    // pagination
+    const pageNumber = parseInt(page, 10);
+    const pageSize = parseInt(limit, 10);
+
+    const skip = (pageNumber - 1) * pageSize;
   
-    const videos = await videosCollection.find({}).toArray();
-    res.status(200).json({
-      data: videos
-    });
+    const videos = await videosCollection
+      .find({})
+      .skip(skip)
+      .limit(pageSize)
+      .toArray();
+    
+    const total = await videosCollection.countDocuments();
+
+    return paginationResponse(res, videos, {
+      total,
+      pageNumber,
+      pageSize,
+    })
   }
+
+  static async deleteVideo(req, res, next) {
+    const { chapterId } = req.body;
+  
+    if (!chapterId) {
+      return errorResponse(res, 400, 'Chapter ID is required');
+    }
+  
+    try {
+      const deleteResult = await videosCollection.deleteOne({ chapterId });
+  
+      if (!deleteResult.deletedCount) {
+        return errorResponse(res, 404, 'video not found or already deleted');
+      }
+  
+      return successResponse(res, 200, 'video deleted successfully', { chapterId });
+    } catch (error) {
+      console.error('Error deleting video:', error);
+      
+      return errorResponse(res, 500, 'unexpected error occurred while deleting the video', {
+        message: error.message,
+        stack: process.env.NODE_ENV === 'production' ? undefined : error.stack, // Avoid exposing stack trace in production
+      });
+    }
+  }  
 
   static async uploadVideo(req, res, next) {
     const chapterId = v4();

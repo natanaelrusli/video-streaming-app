@@ -6,3 +6,4 @@ export const videoRouter = express.Router();
 
 videoRouter.get('/api/get-video', VideoHandler.getVideo)
 videoRouter.post('/api/upload-video', uploadFile, VideoHandler.uploadVideo)
+videoRouter.delete('/api/video', VideoHandler.deleteVideo)

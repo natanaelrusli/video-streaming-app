@@ -17,3 +17,17 @@ export function successResponse(res, statusCode, message, data = null) {
     ...(data && { data }),
   });
 }
+
+export function paginationResponse(res, data, meta, message = 'success') {
+  return res.status(200).json({
+    success: true,
+    message,
+    ...(data && { data }),
+    meta: {
+      total: meta.total,
+      page: meta.pageNumber,
+      pageSize: meta.pageSize,
+      totalPage: Math.ceil(meta.total / meta.pageSize)
+    }
+  })
+}
